@@ -57,19 +57,13 @@ public class ShoppingCartController {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
 
-        if (dto.quantity <= 0) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Quantity must be greater than zero")
-                    .build();
-        }
-
         ShoppingCartItem existingItem = cart.items.stream()
             .filter(item -> item.book.id.equals(dto.bookId))
             .findFirst()
             .orElse(null);
 
         if (existingItem != null) {
-            existingItem.quantity += 1;
+            existingItem.quantity += dto.quantity;
             existingItem.persist();
             return Response.ok(existingItem).build();
         } else {
