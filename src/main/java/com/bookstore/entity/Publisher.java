@@ -17,7 +17,13 @@ public class Publisher extends PanacheEntity {
     public String address;
     public String phone;
     public String email;
+    public String password; 
     public String website;
+    public int type = 1; // 1: Publisher, 2: Customer
+
+
+    @jakarta.annotation.Nullable
+    public String token;
 
     @OneToMany(mappedBy = "publisher", cascade = CascadeType.REMOVE, orphanRemoval = true)
     @JsonIgnore

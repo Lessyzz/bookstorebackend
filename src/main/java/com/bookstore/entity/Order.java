@@ -22,9 +22,9 @@ public class Order extends PanacheEntity {
     public double totalPrice;
     public int orderStatus; // 0: Pending, 1: Shipped, 2: Delivered, 3: Cancelled
     public String shippingAddress;
-    public String paymentMethod;
+    public int paymentMethod;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "order", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
     @JsonIgnore
     public List<OrderItem> orderItems;
 }

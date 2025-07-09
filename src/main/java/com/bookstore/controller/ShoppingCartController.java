@@ -5,8 +5,11 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.transaction.Transactional;
 
+import com.bookstore.dto.shoppingcard.ShoppingCartBuyDto;
 import com.bookstore.dto.shoppingcard.ShoppingCartItemCreateDto;
 import com.bookstore.entity.Book;
+import com.bookstore.entity.Order;
+import com.bookstore.entity.OrderItem;
 import com.bookstore.entity.ShoppingCart;
 import com.bookstore.entity.ShoppingCartItem;
 
@@ -30,9 +33,9 @@ public class ShoppingCartController {
         }
 
         ShoppingCartItem existingItem = cart.items.stream()
-            .filter(item -> item.book.id.equals(dto.bookId))
-            .findFirst()
-            .orElse(null);
+                .filter(item -> item.book.id.equals(dto.bookId))
+                .findFirst()
+                .orElse(null);
 
         if (existingItem != null) {
             existingItem.quantity = dto.quantity;
@@ -58,12 +61,16 @@ public class ShoppingCartController {
         }
 
         ShoppingCartItem existingItem = cart.items.stream()
-            .filter(item -> item.book.id.equals(dto.bookId))
-            .findFirst()
-            .orElse(null);
+                .filter(item -> item.book.id.equals(dto.bookId))
+                .findFirst()
+                .orElse(null);
 
         if (existingItem != null) {
             existingItem.quantity += dto.quantity;
+            if (existingItem.quantity <= 0)
+            {
+                ShoppingCartItem.delete("id", existingItem.id);
+            }
             existingItem.persist();
             return Response.ok(existingItem).build();
         } else {
@@ -110,9 +117,63 @@ public class ShoppingCartController {
         }
 
         int totalQuantity = cart.items.stream()
-            .mapToInt(item -> item.quantity)
-            .sum();
+                .mapToInt(item -> item.quantity)
+                .sum();
 
         return Response.ok(totalQuantity).build();
+    }
+
+    @POST
+    @Path("/buy")
+    @Transactional
+    public Response buy(ShoppingCartBuyDto dto) {
+        ShoppingCart cart = ShoppingCart.findById(dto.cartId);
+        if (cart == null) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+
+        if (cart.items.isEmpty()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Shopping cart is empty")
+                    .build();
+        }
+
+        Order order = new Order();
+        order.orderItems = new java.util.ArrayList<>();
+        order.customer = cart.customer;
+        order.orderDate = java.time.LocalDate.now();
+        order.orderStatus = 0; // Default status: Pending
+        order.shippingAddress = cart.customer.address;
+        order.paymentMethod = 1;
+
+        order.totalPrice = cart.items.stream()
+                .mapToDouble(item -> item.book.price * item.quantity)
+                .sum();
+
+        order.persist();
+
+        for (ShoppingCartItem item : cart.items) {
+            Book book = Book.findById(item.book.id);
+            if (book == null) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity("Book not found for the provided bookId: " + item.book.id)
+                        .build();
+            }
+            OrderItem orderItem = new OrderItem();
+            orderItem.order = order;
+            orderItem.book = book;
+            orderItem.price = book.price * item.quantity;
+            orderItem.quantity = item.quantity;
+
+
+            order.orderItems.add(orderItem);
+        }
+
+        order.persist();
+
+        cart.items.clear();
+        cart.persist();
+
+        return Response.ok("Purchase successful").build();
     }
 }

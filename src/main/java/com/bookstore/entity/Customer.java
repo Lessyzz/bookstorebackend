@@ -22,6 +22,11 @@ public class Customer extends PanacheEntity {
     public int membershipLevel; // Silver, Gold, Platinum
     public String photoUrl;
 
+    @jakarta.annotation.Nullable
+    public String token;
+
+    public int type = 2; // 1: Publisher, 2: Customer
+
     @OneToMany(mappedBy = "customer", cascade = CascadeType.REMOVE, orphanRemoval = true)
     @JsonIgnore
     public List<Order> orders;

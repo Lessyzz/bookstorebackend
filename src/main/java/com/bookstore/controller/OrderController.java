@@ -79,9 +79,15 @@ public class OrderController {
     @GET
     @Path("/{id}")
     public Response getById(@PathParam("id") Long id) {
-        Order order = Order.findById(id);
-        if (order == null)
-            return Response.status(Response.Status.NOT_FOUND).build();
-        return Response.ok(order).build();
+        List<Order> orders = Order.list("customer.id", id);
+        return Response.ok(orders).build();
+    }
+
+    @GET
+    @Path("/order-items/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getOrderItems(@PathParam("id") Long orderId) {
+        List<OrderItem> items = OrderItem.list("order.id", orderId);
+        return Response.ok(items).build();
     }
 }
